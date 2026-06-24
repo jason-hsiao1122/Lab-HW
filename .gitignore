@@ -169,3 +169,7 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Project outputs and local agent instructions
+outputs/
+AGENTS.md
