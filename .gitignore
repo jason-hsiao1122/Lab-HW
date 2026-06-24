@@ -173,3 +173,4 @@ __marimo__/
 # Project outputs and local agent instructions
 AGENTS.md
 .vscode/
+experiment_outputs/
