@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import tracemalloc
 from pathlib import Path
 
 class two_hidden_layer:
@@ -41,12 +42,69 @@ class two_hidden_layer:
             z3 = self.w3.dot(a2) + self.b3[:, np.newaxis]
             a3 = two_hidden_layer.softmax(z3)
             return a1, a2, a3
+
+    def save_parameters(self, file_path='outputs/model_parameters.npz'):
+        file_path = Path(file_path)
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        np.savez(
+            file_path,
+            w1=self.w1,
+            w2=self.w2,
+            w3=self.w3,
+            b1=self.b1,
+            b2=self.b2,
+            b3=self.b3,
+        )
+
+    def load_parameters(self, file_path='outputs/model_parameters.npz'):
+        data = np.load(file_path)
+        self.w1 = data['w1']
+        self.w2 = data['w2']
+        self.w3 = data['w3']
+        self.b1 = data['b1']
+        self.b2 = data['b2']
+        self.b3 = data['b3']
+        data.close()
+
+        self.h1_size, self.input_size = self.w1.shape
+        self.h2_size = self.w2.shape[0]
+        self.output_size = self.w3.shape[0]
+
+    def parameter_memory(self):
+        return sum(
+            param.nbytes
+            for param in (self.w1, self.w2, self.w3, self.b1, self.b2, self.b3)
+        )
+
+    def format_memory(self, byte_count):
+        units = ['B', 'KB', 'MB', 'GB']
+        size = float(byte_count)
+        for unit in units:
+            if size < 1024 or unit == units[-1]:
+                return f'{size:.2f} {unit}'
+            size /= 1024
     
-    def plot_curves(self, train_loss, test_loss, train_acc, test_acc, output_dir='outputs'):
+    def plot_curves(
+        self,
+        train_loss,
+        test_loss,
+        train_acc,
+        test_acc,
+        output_dir='outputs',
+        batch_size=None,
+        peak_memory=None,
+    ):
         Path(output_dir).mkdir(exist_ok=True)
         epochs = np.arange(1, len(train_loss) + 1)
 
         fig, axes = plt.subplots(1, 2, figsize=(12, 5), dpi=100)
+        if batch_size is not None and peak_memory is not None:
+            fig.suptitle(
+                f'Batch size: {batch_size} | '
+                f'Peak memory: {self.format_memory(peak_memory)} | '
+                f'Parameter memory: {self.format_memory(self.parameter_memory())}'
+            )
+
         axes[0].set(ylabel='Loss', xlabel='Epoch')
         axes[0].plot(epochs, train_loss, label='Train loss', color='r')
         axes[0].plot(epochs, test_loss, label='Test loss', color='g')
@@ -59,17 +117,19 @@ class two_hidden_layer:
 
         fig.tight_layout()
         fig.savefig(Path(output_dir) / 'learning_curves.png')
-        plt.show()
+        plt.close(fig)
         
-    def train(self, x_train, y_train, x_test, y_test, epochs, batch_size, lr):
+    def train(self, x_train, y_train, x_test, y_test, epochs, batch_size, lr, output_dir='outputs'):
         train_loss = []
         test_loss = []
         train_acc = []
         test_acc = []
         sample_count = x_train.shape[1]
+        tracemalloc.start()
 
         for epoch in range(epochs):
             indices = np.random.permutation(sample_count)
+            # batch
             for start in range(0, sample_count, batch_size):
                 batch_indices = indices[start:start + batch_size]
                 x = x_train[:, batch_indices]
@@ -105,9 +165,25 @@ class two_hidden_layer:
             test_loss.append(self.loss_function(y_test, pred_test))
             train_acc.append(self.accuracy(y_train, pred_train))
             test_acc.append(self.accuracy(y_test, pred_test))
-            print(f'Epoch {epoch + 1}/{epochs} - loss: {train_loss[-1]:.4f} - acc: {train_acc[-1] * 100:.2f}% - test_acc: {test_acc[-1] * 100:.2f}%')
+            print(
+                f'Epoch {epoch + 1}/{epochs} '
+                f'- loss: {train_loss[-1]:.4f} '
+                f'- acc: {train_acc[-1] * 100:.2f}% '
+                f'- test_loss: {test_loss[-1]:.4f} '
+                f'- test_acc: {test_acc[-1] * 100:.2f}%'
+            )
         
-        self.plot_curves(train_loss, test_loss, train_acc, test_acc)
+        _, peak_memory = tracemalloc.get_traced_memory()
+        tracemalloc.stop()
+        self.plot_curves(
+            train_loss,
+            test_loss,
+            train_acc,
+            test_acc,
+            output_dir,
+            batch_size,
+            peak_memory,
+        )
             
                 
 

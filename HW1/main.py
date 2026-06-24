@@ -13,6 +13,7 @@ def one_hot(labels, class_count=10):
 
 if __name__ == '__main__':
     path = os.path.dirname(os.path.realpath(__file__))
+    output_dir = os.path.join(path, "outputs")
 
     data = np.load(os.path.join(path,"mnist.npz"))
 
@@ -35,5 +36,7 @@ if __name__ == '__main__':
         epochs=2,
         batch_size=16,
         lr=0.01,
+        output_dir=output_dir,
     )
-    model.test(x_test_flat, y_test, raw_images=x_test)
+    model.save_parameters(os.path.join(output_dir, "model_parameters.npz"))
+    model.test(x_test_flat, y_test, raw_images=x_test, output_dir=output_dir)
