@@ -14,6 +14,12 @@ def one_hot(labels, class_count=10):
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Train a two hidden layer neural network on MNIST.")
+    parser.add_argument(
+        "--mode",
+        choices=["train", "test"],
+        default="train",
+        help="Run training or only test a saved model.",
+    )
     parser.add_argument("--epochs", type=int, default=2, help="Number of training epochs.")
     parser.add_argument("--batch-size", type=int, default=16, help="Mini-batch size.")
     parser.add_argument("--lr", type=float, default=0.01, help="Learning rate.")
@@ -48,19 +54,30 @@ if __name__ == '__main__':
 
     x_train_flat = flatten_images(x_train)
     x_test_flat = flatten_images(x_test)
-    y_train_one_hot = one_hot(y_train)
-    y_test_one_hot = one_hot(y_test)
 
     model = two_hidden_layer(activation=args.activation)
-    model.train(
-        x_train_flat,
-        y_train_one_hot,
-        x_test_flat,
-        y_test_one_hot,
-        epochs=args.epochs,
-        batch_size=args.batch_size,
-        lr=args.lr,
-        output_dir=output_dir,
-    )
-    model.save_parameters(os.path.join(output_dir, args.parameter_file))
+    parameter_path = os.path.join(output_dir, args.parameter_file)
+
+    if args.mode == "train":
+        y_train_one_hot = one_hot(y_train)
+        y_test_one_hot = one_hot(y_test)
+        model.train(
+            x_train_flat,
+            y_train_one_hot,
+            x_test_flat,
+            y_test_one_hot,
+            epochs=args.epochs,
+            batch_size=args.batch_size,
+            lr=args.lr,
+            output_dir=output_dir,
+        )
+        model.save_parameters(parameter_path)
+    else:
+        if not os.path.exists(parameter_path):
+            raise FileNotFoundError(
+                f"Saved parameter file not found: {parameter_path}. "
+                "Run with --mode train first, or set --parameter-file."
+            )
+        model.load_parameters(parameter_path)
+
     model.test(x_test_flat, y_test, raw_images=x_test, output_dir=output_dir)

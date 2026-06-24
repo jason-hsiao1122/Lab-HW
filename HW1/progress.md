@@ -1,18 +1,13 @@
-# HW1 Progress
+# HW1
 
-目前 HW1 的功能：
+## 模型設定
 
-- 讀取 MNIST 資料集。
-- 將圖片轉成模型可使用的輸入格式。
-- 使用 NumPy 建立兩層隱藏層的神經網路。
-- 訓練模型進行手寫數字分類。
-- 計算訓練與測試的 loss / accuracy。
-- 產生學習曲線圖。
-- 隨機顯示 10 張測試圖片與模型預測結果。
-- 儲存訓練後的模型參數。
+- Activation function: sigmoid / relu
+- Batch size: 16
+- Initialization: random
+- Epoch: 2
 
-輸出檔案位置：
+## Result
 
-```text
-HW1/outputs/
-```
+- Learning curve: `HW1/outputs/learning_curves.png`
+- Sample prediction: `HW1/outputs/sample_predictions.png`
