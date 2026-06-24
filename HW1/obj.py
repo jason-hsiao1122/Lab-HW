@@ -20,22 +20,48 @@ class two_hidden_layer:
         return np.mean(np.argmax(y_true, axis=0) == np.argmax(y_pred, axis=0))
 
 
-    def __init__(self, input_size=784, h1_size=100, h2_size=150, output_size=10, activation='sigmoid'):
+    def __init__(
+        self,
+        input_size=784,
+        h1_size=100,
+        h2_size=150,
+        output_size=10,
+        activation='sigmoid',
+        initialization='random',
+    ):
         self.input_size = input_size
         self.h1_size = h1_size
         self.h2_size = h2_size
         self.output_size = output_size
         self.activation_name = activation
+        self.initialization = initialization
         self.activation, self.activation_derivative = self.get_activation(activation)
+        self.initialize_parameters(initialization)
 
-        self.w1 = np.random.rand(h1_size, input_size) * 2 - 1
-        self.b1 = np.random.rand(h1_size) * 2 - 1
+    def initialize_parameters(self, initialization):
+        if initialization == 'random':
+            self.w1 = np.random.rand(self.h1_size, self.input_size) * 2 - 1
+            self.b1 = np.random.rand(self.h1_size) * 2 - 1
 
-        self.w2 = np.random.rand(h2_size, h1_size) * 2 - 1
-        self.b2 = np.random.rand(h2_size) * 2 - 1
-        
-        self.w3 = np.random.rand(output_size, h2_size) * 2 - 1
-        self.b3 = np.random.rand(output_size) * 2 - 1
+            self.w2 = np.random.rand(self.h2_size, self.h1_size) * 2 - 1
+            self.b2 = np.random.rand(self.h2_size) * 2 - 1
+
+            self.w3 = np.random.rand(self.output_size, self.h2_size) * 2 - 1
+            self.b3 = np.random.rand(self.output_size) * 2 - 1
+            return
+
+        if initialization == 'zero':
+            self.w1 = np.zeros((self.h1_size, self.input_size))
+            self.b1 = np.zeros(self.h1_size)
+
+            self.w2 = np.zeros((self.h2_size, self.h1_size))
+            self.b2 = np.zeros(self.h2_size)
+
+            self.w3 = np.zeros((self.output_size, self.h2_size))
+            self.b3 = np.zeros(self.output_size)
+            return
+
+        raise ValueError("initialization must be 'random' or 'zero'")
 
     def get_activation(self, activation):
         if activation == 'sigmoid':
@@ -112,6 +138,7 @@ class two_hidden_layer:
             fig.suptitle(
                 f'Batch size: {batch_size} | '
                 f'Activation: {self.activation_name} | '
+                f'Initialization: {self.initialization} | '
                 f'Peak memory: {self.format_memory(peak_memory)} | '
                 f'Parameter memory: {self.format_memory(self.parameter_memory())}'
             )
@@ -130,12 +157,44 @@ class two_hidden_layer:
         fig.savefig(Path(output_dir) / 'learning_curves.png')
         plt.close(fig)
         
-    def train(self, x_train, y_train, x_test, y_test, epochs, batch_size, lr, output_dir='outputs'):
+    def get_parameters(self):
+        return (
+            self.w1.copy(),
+            self.w2.copy(),
+            self.w3.copy(),
+            self.b1.copy(),
+            self.b2.copy(),
+            self.b3.copy(),
+        )
+
+    def set_parameters(self, parameters):
+        self.w1, self.w2, self.w3, self.b1, self.b2, self.b3 = [
+            param.copy() for param in parameters
+        ]
+
+    def train(
+        self,
+        x_train,
+        y_train,
+        x_test,
+        y_test,
+        epochs,
+        batch_size,
+        lr,
+        output_dir='outputs',
+        early_stopping=False,
+        patience=5,
+        min_delta=0.0,
+    ):
         train_loss = []
         test_loss = []
         train_acc = []
         test_acc = []
         sample_count = x_train.shape[1]
+        best_loss = float('inf')
+        best_epoch = 0
+        best_parameters = None
+        bad_epochs = 0
         tracemalloc.start()
 
         for epoch in range(epochs):
@@ -176,6 +235,15 @@ class two_hidden_layer:
             test_loss.append(self.loss_function(y_test, pred_test))
             train_acc.append(self.accuracy(y_train, pred_train))
             test_acc.append(self.accuracy(y_test, pred_test))
+            improved = test_loss[-1] < best_loss - min_delta
+            if improved:
+                best_loss = test_loss[-1]
+                best_epoch = epoch + 1
+                best_parameters = self.get_parameters()
+                bad_epochs = 0
+            else:
+                bad_epochs += 1
+
             print(
                 f'Epoch {epoch + 1}/{epochs} '
                 f'- loss: {train_loss[-1]:.4f} '
@@ -183,6 +251,17 @@ class two_hidden_layer:
                 f'- test_loss: {test_loss[-1]:.4f} '
                 f'- test_acc: {test_acc[-1] * 100:.2f}%'
             )
+
+            if early_stopping and bad_epochs >= patience:
+                print(
+                    f'Early stopping at epoch {epoch + 1}. '
+                    f'Best test_loss: {best_loss:.4f} at epoch {best_epoch}.'
+                )
+                break
+
+        if early_stopping and best_parameters is not None:
+            self.set_parameters(best_parameters)
+            print(f'Restored parameters from epoch {best_epoch}.')
         
         _, peak_memory = tracemalloc.get_traced_memory()
         tracemalloc.stop()
@@ -195,6 +274,17 @@ class two_hidden_layer:
             batch_size,
             peak_memory,
         )
+        return {
+            'train_loss': train_loss,
+            'test_loss': test_loss,
+            'train_acc': train_acc,
+            'test_acc': test_acc,
+            'peak_memory': peak_memory,
+            'parameter_memory': self.parameter_memory(),
+            'epochs_ran': len(train_loss),
+            'best_epoch': best_epoch,
+            'best_test_loss': best_loss,
+        }
             
                 
 

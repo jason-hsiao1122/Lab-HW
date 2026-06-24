@@ -24,10 +24,33 @@ def parse_args():
     parser.add_argument("--batch-size", type=int, default=16, help="Mini-batch size.")
     parser.add_argument("--lr", type=float, default=0.01, help="Learning rate.")
     parser.add_argument(
+        "--early-stopping",
+        action="store_true",
+        help="Stop training when test loss does not improve.",
+    )
+    parser.add_argument(
+        "--patience",
+        type=int,
+        default=5,
+        help="Epochs to wait without test loss improvement before early stopping.",
+    )
+    parser.add_argument(
+        "--min-delta",
+        type=float,
+        default=0.0,
+        help="Minimum test loss improvement required to reset early stopping patience.",
+    )
+    parser.add_argument(
         "--activation",
         choices=["sigmoid", "relu"],
         default="sigmoid",
         help="Activation function for hidden layers.",
+    )
+    parser.add_argument(
+        "--init",
+        choices=["random", "zero"],
+        default="random",
+        help="Parameter initialization method.",
     )
     parser.add_argument("--output-dir", default="outputs", help="Directory for output files.")
     parser.add_argument(
@@ -55,7 +78,7 @@ if __name__ == '__main__':
     x_train_flat = flatten_images(x_train)
     x_test_flat = flatten_images(x_test)
 
-    model = two_hidden_layer(activation=args.activation)
+    model = two_hidden_layer(activation=args.activation, initialization=args.init)
     parameter_path = os.path.join(output_dir, args.parameter_file)
 
     if args.mode == "train":
@@ -70,6 +93,9 @@ if __name__ == '__main__':
             batch_size=args.batch_size,
             lr=args.lr,
             output_dir=output_dir,
+            early_stopping=args.early_stopping,
+            patience=args.patience,
+            min_delta=args.min_delta,
         )
         model.save_parameters(parameter_path)
     else:
