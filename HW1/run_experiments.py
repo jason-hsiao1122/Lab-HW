@@ -14,7 +14,7 @@ from obj import two_hidden_layer
 
 ACTIVATIONS = ['sigmoid', 'relu']
 INITIALIZATIONS = ['random', 'zero']
-BATCH_SIZES = [1, 16, 256, 60000]
+BATCH_SIZES = [16, 256, 1024, 60000]
 
 
 def parse_args():
