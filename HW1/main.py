@@ -17,6 +17,12 @@ def parse_args():
     parser.add_argument("--epochs", type=int, default=2, help="Number of training epochs.")
     parser.add_argument("--batch-size", type=int, default=16, help="Mini-batch size.")
     parser.add_argument("--lr", type=float, default=0.01, help="Learning rate.")
+    parser.add_argument(
+        "--activation",
+        choices=["sigmoid", "relu"],
+        default="sigmoid",
+        help="Activation function for hidden layers.",
+    )
     parser.add_argument("--output-dir", default="outputs", help="Directory for output files.")
     parser.add_argument(
         "--parameter-file",
@@ -45,7 +51,7 @@ if __name__ == '__main__':
     y_train_one_hot = one_hot(y_train)
     y_test_one_hot = one_hot(y_test)
 
-    model = two_hidden_layer()
+    model = two_hidden_layer(activation=args.activation)
     model.train(
         x_train_flat,
         y_train_one_hot,

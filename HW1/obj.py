@@ -6,6 +6,7 @@ from pathlib import Path
 class two_hidden_layer:
 
     sigmoid = lambda x: 1 / (1 + np.exp(-x))
+    relu = lambda x: np.maximum(0, x)
 
     def softmax(x):
         exp_x = np.exp(x - np.max(x, axis=0, keepdims=True))  # Subtract max for numerical stability
@@ -19,11 +20,13 @@ class two_hidden_layer:
         return np.mean(np.argmax(y_true, axis=0) == np.argmax(y_pred, axis=0))
 
 
-    def __init__(self, input_size=784, h1_size=100, h2_size=150, output_size=10):
+    def __init__(self, input_size=784, h1_size=100, h2_size=150, output_size=10, activation='sigmoid'):
         self.input_size = input_size
         self.h1_size = h1_size
         self.h2_size = h2_size
         self.output_size = output_size
+        self.activation_name = activation
+        self.activation, self.activation_derivative = self.get_activation(activation)
 
         self.w1 = np.random.rand(h1_size, input_size) * 2 - 1
         self.b1 = np.random.rand(h1_size) * 2 - 1
@@ -34,11 +37,18 @@ class two_hidden_layer:
         self.w3 = np.random.rand(output_size, h2_size) * 2 - 1
         self.b3 = np.random.rand(output_size) * 2 - 1
 
+    def get_activation(self, activation):
+        if activation == 'sigmoid':
+            return two_hidden_layer.sigmoid, lambda a: a * (1 - a)
+        if activation == 'relu':
+            return two_hidden_layer.relu, lambda a: (a > 0).astype(float)
+        raise ValueError("activation must be 'sigmoid' or 'relu'")
+
     def forword_passing(self, x):
             z1 = self.w1.dot(x) + self.b1[:, np.newaxis]
-            a1 = two_hidden_layer.sigmoid(z1)
+            a1 = self.activation(z1)
             z2 = self.w2.dot(a1) + self.b2[:, np.newaxis]
-            a2 = two_hidden_layer.sigmoid(z2)
+            a2 = self.activation(z2)
             z3 = self.w3.dot(a2) + self.b3[:, np.newaxis]
             a3 = two_hidden_layer.softmax(z3)
             return a1, a2, a3
@@ -101,6 +111,7 @@ class two_hidden_layer:
         if batch_size is not None and peak_memory is not None:
             fig.suptitle(
                 f'Batch size: {batch_size} | '
+                f'Activation: {self.activation_name} | '
                 f'Peak memory: {self.format_memory(peak_memory)} | '
                 f'Parameter memory: {self.format_memory(self.parameter_memory())}'
             )
@@ -141,10 +152,10 @@ class two_hidden_layer:
                 error3 = a3 - y
                 dw3 = error3.dot(a2.T) / current_batch_size
 
-                error2 = a2 * (1 - a2) * self.w3.T.dot(error3)
+                error2 = self.activation_derivative(a2) * self.w3.T.dot(error3)
                 dw2 = error2.dot(a1.T) / current_batch_size
 
-                error1 = a1 * (1 - a1) * self.w2.T.dot(error2)
+                error1 = self.activation_derivative(a1) * self.w2.T.dot(error2)
                 dw1 = error1.dot(x.T) / current_batch_size
 
                 db3 = np.mean(error3, axis=1)
