@@ -173,3 +173,4 @@ __marimo__/
 # Project outputs and local agent instructions
 outputs/
 AGENTS.md
+.vscode/
