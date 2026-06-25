@@ -13,6 +13,7 @@ METRIC_LABELS = {
     'final_test_accuracy': 'Final test accuracy',
     'saved_model_test_accuracy': 'Saved model test accuracy',
     'best_test_loss': 'Best test loss',
+    'epochs_ran': 'Epochs ran',
     'train_time_seconds': 'Train time (seconds)',
     'peak_memory_bytes': 'Peak memory (bytes)',
 }
@@ -144,6 +145,7 @@ def main():
 
     plot_summary_bar(rows, 'final_test_accuracy', output_dir / 'final_test_accuracy.png')
     plot_summary_bar(rows, 'final_test_loss', output_dir / 'final_test_loss.png')
+    plot_summary_bar(rows, 'epochs_ran', output_dir / 'epochs_ran.png')
     plot_summary_bar(rows, 'train_time_seconds', output_dir / 'train_time_seconds.png')
     plot_summary_bar(rows, 'peak_memory_bytes', output_dir / 'peak_memory_bytes.png')
     plot_grouped_accuracy(rows, output_dir / 'accuracy_by_batch_size.png')
