@@ -174,3 +174,4 @@ __marimo__/
 AGENTS.md
 .vscode/
 outputs/
+experiment_outputs/

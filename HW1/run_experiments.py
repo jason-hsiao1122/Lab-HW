@@ -21,7 +21,7 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description="Train all activation, initialization, and batch-size combinations."
     )
-    parser.add_argument("--epochs", type=int, default=2, help="Maximum epochs for each model.")
+    parser.add_argument("--epochs", type=int, default=50, help="Maximum epochs for each model.")
     parser.add_argument("--lr", type=float, default=0.01, help="Learning rate.")
     parser.add_argument(
         "--output-dir",
