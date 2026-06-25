@@ -25,7 +25,7 @@ def parse_args():
     parser.add_argument(
         '--input-dir',
         default='experiment_outputs',
-        help='Directory containing summary.csv and per-run learning_history.csv files.',
+        help='Directory containing summary.csv or summary.json.',
     )
     parser.add_argument(
         '--output-dir',
@@ -57,20 +57,6 @@ def read_summary(input_dir):
         f'Cannot find summary.csv or summary.json in {input_dir}. '
         'Run run_experiments.py first, then visualize the saved result files.'
     )
-
-
-def read_history(run_dir):
-    history_path = run_dir / 'learning_history.csv'
-    with history_path.open(newline='') as file:
-        rows = list(csv.DictReader(file))
-
-    return {
-        'epoch': [int(row['epoch']) for row in rows],
-        'train_loss': [float(row['train_loss']) for row in rows],
-        'test_loss': [float(row['test_loss']) for row in rows],
-        'train_acc': [float(row['train_acc']) for row in rows],
-        'test_acc': [float(row['test_acc']) for row in rows],
-    }
 
 
 def to_number(value):
@@ -141,39 +127,6 @@ def plot_grouped_accuracy(rows, output_path):
     plt.close(fig)
 
 
-def plot_all_learning_curves(rows, input_dir, output_path):
-    fig, axes = plt.subplots(1, 2, figsize=(14, 6), dpi=120)
-
-    for row in rows:
-        run_dir = resolve_path(row['output_dir'], input_dir)
-        history_path = run_dir / 'learning_history.csv'
-        if not history_path.exists():
-            continue
-
-        history = read_history(run_dir)
-        label = run_label(row)
-        axes[0].plot(history['epoch'], history['test_loss'], label=label)
-        axes[1].plot(history['epoch'], history['test_acc'], label=label)
-
-    axes[0].set_title('Test loss learning curves')
-    axes[0].set_xlabel('Epoch')
-    axes[0].set_ylabel('Test loss')
-    axes[0].grid(alpha=0.25)
-
-    axes[1].set_title('Test accuracy learning curves')
-    axes[1].set_xlabel('Epoch')
-    axes[1].set_ylabel('Test accuracy')
-    axes[1].grid(alpha=0.25)
-
-    handles, labels = axes[1].get_legend_handles_labels()
-    if handles:
-        fig.legend(handles, labels, loc='lower center', ncol=2, fontsize=8)
-        fig.subplots_adjust(bottom=0.28)
-    fig.tight_layout()
-    fig.savefig(output_path)
-    plt.close(fig)
-
-
 def main():
     args = parse_args()
     hw1_dir = Path(__file__).resolve().parent
@@ -194,7 +147,6 @@ def main():
     plot_summary_bar(rows, 'train_time_seconds', output_dir / 'train_time_seconds.png')
     plot_summary_bar(rows, 'peak_memory_bytes', output_dir / 'peak_memory_bytes.png')
     plot_grouped_accuracy(rows, output_dir / 'accuracy_by_batch_size.png')
-    plot_all_learning_curves(rows, input_dir, output_dir / 'all_test_learning_curves.png')
 
     print(f'Visualization files saved to: {output_dir}')
 
