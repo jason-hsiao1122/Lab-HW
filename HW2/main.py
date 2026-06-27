@@ -117,6 +117,32 @@ def main() -> None:
     print(f"Best test accuracy: {best_test_accuracy:.2%}")
     print(f"Saved results to: {args.output_dir.resolve()}")
 
+    # Plot learning curve
+    history = json.loads((args.output_dir / "history.json").read_text(encoding="utf-8"))
+    epochs = [e["epoch"] for e in history]
+    train_loss = [e["train_loss"] for e in history]
+    test_loss = [e["test_loss"] for e in history]
+    train_acc = [e["train_accuracy"] for e in history]
+    test_acc = [e["test_accuracy"] for e in history]
+
+    fig, axs = plt.subplots(2, 1, figsize=(8, 6))
+    axs[0].plot(epochs, train_loss, label="train loss")
+    axs[0].plot(epochs, test_loss, label="test loss")
+    axs[0].set_title("Loss")
+    axs[0].set_xlabel("Epoch")
+    axs[0].set_ylabel("Loss")
+    axs[0].legend()
+    axs[1].plot(epochs, train_acc, label="train accuracy")
+    axs[1].plot(epochs, test_acc, label="test accuracy")
+    axs[1].set_title("Accuracy")
+    axs[1].set_xlabel("Epoch")
+    axs[1].set_ylabel("Accuracy")
+    axs[1].legend()
+    fig.tight_layout()
+    fig.savefig(args.output_dir / "learning_curve.png", dpi=150)
+    plt.close(fig)
+    print("Saved learning curve to:", args.output_dir / "learning_curve.png")
+
 
 if __name__ == "__main__":
     main()
