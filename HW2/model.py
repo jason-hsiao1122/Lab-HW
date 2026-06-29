@@ -12,21 +12,25 @@ class CIFAR10CNN(nn.Module):
 
         self.features = nn.Sequential(
             # Input: (batch, 3, 32, 32)
-            nn.Conv2d(in_channels=3, out_channels=32, kernel_size=3, padding=1),
+            nn.Conv2d(in_channels=3, out_channels=16, kernel_size=3, padding=1),
+            nn.BatchNorm2d(16),
+            nn.ReLU(),
+            nn.Conv2d(in_channels=16, out_channels=16, kernel_size=3, padding=1),
+            nn.BatchNorm2d(16),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2),  # (batch, 16, 16, 16)
+            nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, padding=1),
+            nn.BatchNorm2d(32),
             nn.ReLU(),
             nn.Conv2d(in_channels=32, out_channels=32, kernel_size=3, padding=1),
+            nn.BatchNorm2d(32),
             nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2),  # (batch, 32, 16, 16)
-            nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, padding=1),
-            nn.ReLU(),
-            nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, padding=1),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2),  # (batch, 64, 8, 8)
+            nn.MaxPool2d(kernel_size=2),  # (batch, 32, 8, 8)
         )
 
         self.classifier = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(64 * 8 * 8, 256),
+            nn.Linear(32 * 8 * 8, 256),
             nn.ReLU(),
             nn.Dropout(p=0.25),
             nn.Linear(256, num_classes),  # Raw class scores (logits)
