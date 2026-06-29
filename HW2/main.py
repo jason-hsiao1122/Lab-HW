@@ -3,6 +3,7 @@
 import argparse
 import json
 import random
+import time
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -51,6 +52,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--num-workers", type=int, default=0)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--output-dir", type=Path, default=Path("outputs/baseline"))
+    parser.add_argument("--early-stopping-patience", type=int, default=5)
     return parser.parse_args()
 
 
@@ -94,6 +96,8 @@ def main() -> None:
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
     history, best_test_accuracy = [], -1.0
+    best_epoch, epochs_without_improvement = 0, 0
+    training_start_time = time.perf_counter()
 
     for epoch in range(1, args.epochs + 1):
         train_loss, train_accuracy = run_epoch(model, train_loader, criterion, device, optimizer)
@@ -105,16 +109,36 @@ def main() -> None:
               f"test acc: {test_accuracy:.2%}")
         if test_accuracy > best_test_accuracy:
             best_test_accuracy = test_accuracy
+            best_epoch = epoch
+            epochs_without_improvement = 0
             torch.save(model.state_dict(), args.output_dir / "best_model.pt")
+        else:
+            epochs_without_improvement += 1
+            if epochs_without_improvement >= args.early_stopping_patience:
+                print(f"Early stopping at epoch {epoch}: best test accuracy "
+                      f"{best_test_accuracy:.2%} was at epoch {best_epoch}.")
+                break
+
+    training_time_seconds = time.perf_counter() - training_start_time
+    summary = {
+        "best_epoch": best_epoch,
+        "best_test_accuracy": best_test_accuracy,
+        "epochs_run": len(history),
+        "early_stopping_patience": args.early_stopping_patience,
+        "training_time_seconds": training_time_seconds,
+    }
 
     with (args.output_dir / "history.json").open("w", encoding="utf-8") as file:
         json.dump(history, file, indent=2)
+    with (args.output_dir / "summary.json").open("w", encoding="utf-8") as file:
+        json.dump(summary, file, indent=2)
 
     model.load_state_dict(torch.load(args.output_dir / "best_model.pt", weights_only=True))
     save_random_predictions(
         model, test_loader.dataset, device, args.output_dir / "random_predictions.png"
     )
-    print(f"Best test accuracy: {best_test_accuracy:.2%}")
+    print(f"Best test accuracy: {best_test_accuracy:.2%} at epoch {best_epoch}")
+    print(f"Training time: {training_time_seconds:.1f}s")
     print(f"Saved results to: {args.output_dir.resolve()}")
 
     # Plot learning curve

@@ -47,16 +47,22 @@ def get_dataloaders(
     """Download CIFAR-10 if needed and return training and test DataLoaders."""
     _configure_https_certificates()
 
-    transform = transforms.Compose([
+    train_transform = transforms.Compose([
+        transforms.RandomCrop(32, padding=4),
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
+        transforms.Normalize(CIFAR10_MEAN, CIFAR10_STD),
+    ])
+    test_transform = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize(CIFAR10_MEAN, CIFAR10_STD),
     ])
 
     train_set = datasets.CIFAR10(
-        root=str(data_dir), train=True, download=True, transform=transform
+        root=str(data_dir), train=True, download=True, transform=train_transform
     )
     test_set = datasets.CIFAR10(
-        root=str(data_dir), train=False, download=True, transform=transform
+        root=str(data_dir), train=False, download=True, transform=test_transform
     )
 
     train_loader = DataLoader(
